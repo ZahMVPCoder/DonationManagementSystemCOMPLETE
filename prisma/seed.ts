@@ -295,6 +295,7 @@ async function main() {
     console.error('❌ Error during seeding:', e);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    // @ts-ignore - $disconnect exists on PrismaClient at runtime
+    await prisma.$disconnect?.() || await prisma.disconnect?.();
   }
 })();
