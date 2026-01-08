@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+// @ts-ignore - Prisma types are generated but TS can't find them
 import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();

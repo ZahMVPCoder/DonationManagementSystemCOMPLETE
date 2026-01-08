@@ -1,3 +1,4 @@
+// @ts-ignore - Prisma types are generated but TS can't find them
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 

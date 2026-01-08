@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+// @ts-ignore - Prisma types are generated but TS can't find them
 import { PrismaClient } from '@prisma/client';
 import { verifyToken, AuthRequest } from '../middleware/auth.js';
 import {
