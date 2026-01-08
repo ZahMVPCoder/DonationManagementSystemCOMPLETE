@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -7,15 +8,48 @@ import {
   Target,
   Calendar
 } from 'lucide-react';
-import { mockDonations, mockDonors, mockCampaigns, mockTasks } from '../data/mockData';
+import { donorApi, donationApi, campaignApi, taskApi } from '../utils/api';
 
 export function Dashboard() {
+  const [donors, setDonors] = useState([]);
+  const [donations, setDonations] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [donorsRes, donationsRes, campaignsRes, tasksRes] = await Promise.all([
+          donorApi.list({ limit: 100 }),
+          donationApi.list({ limit: 100 }),
+          campaignApi.list({ limit: 100 }),
+          taskApi.list({ limit: 100, completed: false })
+        ]);
+        
+        setDonors(donorsRes.donors || []);
+        setDonations(donationsRes.donations || []);
+        setCampaigns(campaignsRes.campaigns || []);
+        setTasks(tasksRes.tasks || []);
+      } catch (err: any) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   // Calculate metrics
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
 
-  const thisMonthDonations = mockDonations.filter((d) => {
+  const thisMonthDonations = donations.filter((d: any) => {
     const donationDate = new Date(d.date);
     return (
       donationDate.getMonth() === currentMonth &&
@@ -24,25 +58,25 @@ export function Dashboard() {
   });
 
   const totalRaisedThisMonth = thisMonthDonations.reduce(
-    (sum, d) => sum + d.amount,
+    (sum: number, d: any) => sum + d.amount,
     0
   );
 
-  const newDonors = mockDonors.filter((d) => d.status === 'new');
-  const lapsedDonors = mockDonors.filter((d) => d.status === 'lapsed');
+  const newDonors = donors.filter((d: any) => d.status === 'new');
+  const lapsedDonors = donors.filter((d: any) => d.status === 'lapsed');
   
-  const activeCampaign = mockCampaigns.find((c) => c.status === 'active');
+  const activeCampaign = campaigns.find((c: any) => c.status === 'active');
   const campaignProgress = activeCampaign
     ? (activeCampaign.raised / activeCampaign.goal) * 100
     : 0;
 
-  const upcomingTasks = mockTasks
-    .filter((t) => !t.completed)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+  const upcomingTasks = tasks
+    .filter((t: any) => !t.completed)
+    .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
 
-  const recentDonations = [...mockDonations]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const recentDonations = [...donations]
+    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
   return (
@@ -52,6 +86,20 @@ export function Dashboard() {
         <p className="text-gray-600 mt-2">Welcome back! Here's your overview.</p>
       </div>
 
+      {loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-600">Loading dashboard data...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+          <p className="text-red-800">Error loading dashboard: {error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -236,7 +284,8 @@ export function Dashboard() {
             </Link>
           </div>
         </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

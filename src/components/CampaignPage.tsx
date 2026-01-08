@@ -1,16 +1,55 @@
 import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, DollarSign, Target, TrendingUp } from 'lucide-react';
-import { mockCampaigns, mockDonations } from '../data/mockData';
+import { campaignApi, donationApi } from '../utils/api';
 
 export function CampaignPage() {
   const { id } = useParams();
-  const campaign = mockCampaigns.find((c) => c.id === id);
+  const [campaign, setCampaign] = useState<any>(null);
+  const [donations, setDonations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!campaign) {
+  useEffect(() => {
+    const fetchCampaignData = async () => {
+      try {
+        if (!id) {
+          setError('Campaign ID not found');
+          return;
+        }
+
+        const [campaignRes, donationsRes] = await Promise.all([
+          campaignApi.get(id),
+          donationApi.list({ campaignId: id }),
+        ]);
+
+        setCampaign(campaignRes.data);
+        setDonations(donationsRes.data.donations || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load campaign');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaignData();
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <p className="text-gray-600 mb-4">Campaign not found</p>
+          <p className="text-gray-600">Loading campaign...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !campaign) {
+    return (
+      <div className="p-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-gray-600 mb-4">{error || 'Campaign not found'}</p>
           <Link to="/" className="text-blue-600 hover:text-blue-700 font-medium">
             Return to Dashboard
           </Link>
@@ -19,16 +58,12 @@ export function CampaignPage() {
     );
   }
 
-  const campaignDonations = mockDonations
-    .filter((d) => d.campaignId === id)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const progress = (campaign.raised / campaign.goal) * 100;
-  const remaining = campaign.goal - campaign.raised;
-  const donorCount = new Set(campaignDonations.map((d) => d.donorId)).size;
+  const progress = (campaign.totalRaised / campaign.goalAmount) * 100;
+  const remaining = campaign.goalAmount - campaign.totalRaised;
+  const donorCount = new Set(donations.map((d) => d.donorId)).size;
   const averageDonation =
-    campaignDonations.length > 0
-      ? campaign.raised / campaignDonations.length
+    donations.length > 0
+      ? campaign.totalRaised / donations.length
       : 0;
 
   const getStatusColor = (status: typeof campaign.status) => {
@@ -91,7 +126,7 @@ export function CampaignPage() {
             <span className="text-sm text-gray-600">Goal</span>
           </div>
           <div className="text-2xl font-bold text-gray-900">
-            ${campaign.goal.toLocaleString()}
+            ${campaign.goalAmount.toLocaleString()}
           </div>
         </div>
 
@@ -145,7 +180,7 @@ export function CampaignPage() {
             {new Date(campaign.startDate).toLocaleDateString()} -{' '}
             {new Date(campaign.endDate).toLocaleDateString()}
           </span>
-          <span>{campaignDonations.length} donations</span>
+          <span>{donations.length} donations</span>
         </div>
       </div>
 
@@ -154,16 +189,16 @@ export function CampaignPage() {
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Campaign Donations</h2>
         </div>
-        {campaignDonations.length > 0 ? (
+        {donations.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {campaignDonations.map((donation) => (
+            {donations.map((donation) => (
               <div key={donation.id} className="p-6 hover:bg-gray-50 transition">
                 <div className="flex items-center justify-between mb-2">
                   <Link
                     to={`/donors/${donation.donorId}`}
                     className="font-medium text-gray-900 hover:text-blue-600"
                   >
-                    {donation.donorName}
+                    {donation.donorId}
                   </Link>
                   <span className="text-xl font-bold text-green-600">
                     ${donation.amount.toLocaleString()}
@@ -172,16 +207,11 @@ export function CampaignPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {new Date(donation.date).toLocaleDateString()}
+                    {new Date(donation.donatedAt).toLocaleDateString()}
                   </span>
                   <span className="capitalize">
-                    {donation.method.replace('_', ' ')}
+                    {donation.paymentMethod?.replace('_', ' ')}
                   </span>
-                  {donation.recurring && (
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                      Recurring
-                    </span>
-                  )}
                 </div>
                 {donation.notes && (
                   <p className="text-sm text-gray-700 mt-2">{donation.notes}</p>

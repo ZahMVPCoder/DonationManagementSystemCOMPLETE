@@ -1,24 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Plus, DollarSign, Calendar } from 'lucide-react';
-import { mockDonors, Donor } from '../data/mockData';
+import { donorApi } from '../utils/api';
+
+type DonorStatus = 'active' | 'new' | 'lapsed';
 
 export function DonorList() {
+  const [donors, setDonors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const filteredDonors = mockDonors.filter((donor) => {
-    const matchesSearch =
-      donor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      donor.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus =
-      statusFilter === 'all' || donor.status === statusFilter;
+  useEffect(() => {
+    const fetchDonors = async () => {
+      try {
+        setLoading(true);
+        const result = await donorApi.list({
+          search: searchQuery || undefined,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          limit: 50
+        });
+        setDonors(result.donors || []);
+      } catch (err: any) {
+        console.error('Failed to fetch donors:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return matchesSearch && matchesStatus;
-  });
+    fetchDonors();
+  }, [searchQuery, statusFilter]);
 
-  const getStatusColor = (status: Donor['status']) => {
+  const getStatusColor = (status: DonorStatus) => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-700';
@@ -76,16 +91,36 @@ export function DonorList() {
         </div>
       </div>
 
+      {loading && (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading donors...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+          <p className="text-red-800">Error loading donors: {error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
       {/* Results Count */}
       <div className="mb-4">
         <p className="text-sm text-gray-600">
-          Showing {filteredDonors.length} of {mockDonors.length} donors
+          Showing {donors.length} donors
         </p>
       </div>
 
+      {!donors.length && !loading && (
+        <div className="text-center py-12">
+          <p className="text-gray-600">No donors found. Create your first donor to get started!</p>
+        </div>
+      )}
+
       {/* Donor Cards */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredDonors.map((donor) => (
+        {donors.map((donor: any) => (
           <Link
             key={donor.id}
             to={`/donors/${donor.id}`}
@@ -105,7 +140,7 @@ export function DonorList() {
                 </div>
                 <div className="flex flex-col gap-1 text-sm text-gray-600 mb-4">
                   <p>{donor.email}</p>
-                  <p>{donor.phone}</p>
+                  {donor.phone && <p>{donor.phone}</p>}
                 </div>
                 {donor.notes && (
                   <p className="text-sm text-gray-700 mb-4">{donor.notes}</p>
@@ -113,22 +148,15 @@ export function DonorList() {
               </div>
 
               <div className="text-right ml-6">
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  ${donor.totalGiving.toLocaleString()}
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  Donor #{donor.id.substring(0, 8)}
                 </div>
-                <p className="text-sm text-gray-600 mb-3">Total Giving</p>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700">
-                      Last: ${donor.lastGiftAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700">
-                      {new Date(donor.lastGiftDate).toLocaleDateString()}
-                    </span>
+                <p className="text-sm text-gray-600 mb-3">Since {new Date(donor.createdAt).toLocaleDateString()}</p>
+                <button
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  View Profile
+                </button>
                   </div>
                 </div>
               </div>
@@ -136,11 +164,7 @@ export function DonorList() {
           </Link>
         ))}
       </div>
-
-      {filteredDonors.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <p className="text-gray-600">No donors found matching your criteria.</p>
-        </div>
+        </>
       )}
     </div>
   );

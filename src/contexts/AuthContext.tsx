@@ -1,16 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authApi, setToken, clearToken, getToken } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
   email: string;
-  name: string;
+  name?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,42 +21,95 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for existing session in localStorage
+    // Check for existing session on mount
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const token = getToken();
+    
+    if (storedUser && token) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem('user');
+        clearToken();
+      }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication - replace with your Prisma/Neon API call
-    // POST /api/auth/login
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+  // Listen for 401 unauthorized events (from API utility)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      clearToken();
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    };
 
-    // Mock validation (replace with real API)
-    if (email && password.length >= 6) {
-      const mockUser = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
+    window.addEventListener('unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('unauthorized', handleUnauthorized);
+  }, [navigate]);
+
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoading(true);
+      
+      const response = await authApi.login(email, password);
+      
+      // Store token and user
+      setToken(response.token);
+      const userData: User = {
+        id: response.user.id,
+        email: response.user.email,
       };
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      return true;
+      
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      
+      const errorMessage = 
+        error?.data?.message || 
+        error?.message || 
+        'Login failed. Please try again.';
+      
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    } finally {
+      setIsLoading(false);
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async (): Promise<void> => {
+    try {
+      // Call logout endpoint
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with local logout even if API fails
+    } finally {
+      // Always clear local state
+      setUser(null);
+      clearToken();
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    }
   };
+
+  const isAuthenticated = user !== null && getToken() !== null;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

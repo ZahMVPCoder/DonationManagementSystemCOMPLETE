@@ -1,39 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, CheckCircle, Filter, Mail, Phone, UserPlus, MessageSquare } from 'lucide-react';
-import { mockTasks, Task } from '../data/mockData';
+import { taskApi } from '../utils/api';
 
 export function TasksView() {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  const filteredTasks = mockTasks.filter((task) => {
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'pending' && !task.completed) ||
-      (statusFilter === 'completed' && task.completed);
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const status = statusFilter === 'all' ? undefined : statusFilter === 'pending' ? 'pending' : 'completed';
+        const res = await taskApi.list({ status, priority: priorityFilter === 'all' ? undefined : priorityFilter });
+        setTasks(res.data.tasks || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load tasks');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const matchesPriority =
-      priorityFilter === 'all' || task.priority === priorityFilter;
+    fetchTasks();
+  }, [statusFilter, priorityFilter]);
 
-    return matchesStatus && matchesPriority;
-  });
+  if (loading) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Tasks & Follow-ups</h1>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-gray-600">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    // Sort by completed status first
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
-    }
-    // Then by priority
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    }
-    // Then by due date
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-  });
+  if (error) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Tasks & Follow-ups</h1>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const getTaskIcon = (type: Task['type']) => {
+  const getTaskIcon = (type: string) => {
     switch (type) {
       case 'thank_you':
         return Mail;
@@ -43,10 +58,12 @@ export function TasksView() {
         return Phone;
       case 'email':
         return MessageSquare;
+      default:
+        return Mail;
     }
   };
 
-  const getPriorityColor = (priority: Task['priority']) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
         return 'bg-red-100 text-red-700';
@@ -54,18 +71,20 @@ export function TasksView() {
         return 'bg-yellow-100 text-yellow-700';
       case 'low':
         return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
-  const isOverdue = (dueDate: string, completed: boolean) => {
-    if (completed) return false;
+  const isOverdue = (dueDate: string, status: string) => {
+    if (status === 'completed') return false;
     return new Date(dueDate) < new Date();
   };
 
-  const pendingCount = mockTasks.filter((t) => !t.completed).length;
-  const completedCount = mockTasks.filter((t) => t.completed).length;
-  const overdueCount = mockTasks.filter(
-    (t) => !t.completed && new Date(t.dueDate) < new Date()
+  const pendingCount = tasks.filter((t) => t.status === 'pending').length;
+  const completedCount = tasks.filter((t) => t.status === 'completed').length;
+  const overdueCount = tasks.filter(
+    (t) => t.status === 'pending' && new Date(t.dueDate) < new Date()
   ).length;
 
   return (
@@ -159,32 +178,32 @@ export function TasksView() {
               : 'All Tasks'}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
+            {tasks.length} task{tasks.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {sortedTasks.length > 0 ? (
+        {tasks.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {sortedTasks.map((task) => {
+            {tasks.map((task) => {
               const Icon = getTaskIcon(task.type);
-              const overdue = isOverdue(task.dueDate, task.completed);
+              const overdue = isOverdue(task.dueDate, task.status);
               
               return (
                 <div
                   key={task.id}
                   className={`p-6 hover:bg-gray-50 transition ${
-                    task.completed ? 'opacity-60' : ''
+                    task.status === 'completed' ? 'opacity-60' : ''
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 mt-1">
                       <div
                         className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          task.completed ? 'bg-green-100' : 'bg-gray-100'
+                          task.status === 'completed' ? 'bg-green-100' : 'bg-gray-100'
                         }`}
                       >
                         <Icon
                           className={`w-5 h-5 ${
-                            task.completed ? 'text-green-600' : 'text-gray-600'
+                            task.status === 'completed' ? 'text-green-600' : 'text-gray-600'
                           }`}
                         />
                       </div>
@@ -195,18 +214,18 @@ export function TasksView() {
                         <div className="flex-1">
                           <p
                             className={`font-medium mb-1 ${
-                              task.completed
+                              task.status === 'completed'
                                 ? 'text-gray-600 line-through'
                                 : 'text-gray-900'
                             }`}
                           >
-                            {task.description}
+                            {task.title}
                           </p>
                           <Link
                             to={`/donors/${task.donorId}`}
                             className="text-sm text-blue-600 hover:text-blue-700"
                           >
-                            {task.donorName}
+                            {task.donorId}
                           </Link>
                         </div>
                         <div className="flex items-center gap-2 ml-4">
@@ -217,7 +236,7 @@ export function TasksView() {
                           >
                             {task.priority}
                           </span>
-                          {task.completed && (
+                          {task.status === 'completed' && (
                             <CheckCircle className="w-5 h-5 text-green-600" />
                           )}
                         </div>

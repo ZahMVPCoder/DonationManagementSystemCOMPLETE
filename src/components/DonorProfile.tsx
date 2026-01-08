@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Edit, 
@@ -10,24 +11,58 @@ import {
   XCircle,
   Plus
 } from 'lucide-react';
-import { mockDonors, mockDonations, mockTasks } from '../data/mockData';
+import { donorApi, donationApi, taskApi } from '../utils/api';
 
 export function DonorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const donor = mockDonors.find((d) => d.id === id);
-  const donations = mockDonations
-    .filter((d) => d.donorId === id)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
-  const tasks = mockTasks.filter((t) => t.donorId === id);
+  const [donor, setDonor] = useState<any>(null);
+  const [donations, setDonations] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!donor) {
+  useEffect(() => {
+    if (id) {
+      fetchDonorData();
+    }
+  }, [id]);
+
+  const fetchDonorData = async () => {
+    try {
+      setLoading(true);
+      const [donorData, donationsData, tasksData] = await Promise.all([
+        donorApi.get(id!),
+        donationApi.list({ donorId: id, limit: 50 }),
+        taskApi.list({ donorId: id, limit: 50 })
+      ]);
+      
+      setDonor(donorData);
+      setDonations(donationsData.donations || []);
+      setTasks(tasksData.tasks || []);
+    } catch (err: any) {
+      console.error('Failed to fetch donor data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading donor profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !donor) {
     return (
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <p className="text-gray-600 mb-4">Donor not found</p>
+          <p className="text-gray-600 mb-4">{error || 'Donor not found'}</p>
           <Link to="/donors" className="text-blue-600 hover:text-blue-700 font-medium">
             Return to Donors List
           </Link>

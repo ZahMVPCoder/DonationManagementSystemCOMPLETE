@@ -1,64 +1,84 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DollarSign, CheckCircle } from 'lucide-react';
-import { mockDonors, mockCampaigns } from '../data/mockData';
+import { donationApi, donorApi, campaignApi } from '../utils/api';
 
 export function DonationForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedDonorId = searchParams.get('donorId');
 
+  const [donors, setDonors] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
   const [formData, setFormData] = useState({
     donorId: preselectedDonorId || '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
     method: 'credit_card' as 'credit_card' | 'check' | 'cash' | 'bank_transfer',
     campaignId: '',
-    recurring: false,
     notes: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    fetchOptions();
+  }, []);
 
-    // Mock save - replace with your Prisma API call
-    // POST /api/donations
-    console.log('Saving donation:', formData);
-
-    // Show success message (triggers thank-you workflow)
-    setShowSuccess(true);
-
-    // Redirect after delay
-    setTimeout(() => {
-      if (formData.donorId) {
-        navigate(`/donors/${formData.donorId}`);
-      } else {
-        navigate('/donors');
-      }
-    }, 2000);
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+  const fetchOptions = async () => {
+    try {
+      setLoading(true);
+      const [donorsRes, campaignsRes] = await Promise.all([
+        donorApi.list({ limit: 100 }),
+        campaignApi.list({ limit: 100 })
+      ]);
+      setDonors(donorsRes.donors || []);
+      setCampaigns(campaignsRes.campaigns || []);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const selectedDonor = mockDonors.find((d) => d.id === formData.donorId);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setSubmitting(true);
+      setError('');
+      
+      const donationData = {
+        donorId: formData.donorId,
+        amount: parseFloat(formData.amount),
+        date: formData.date,
+        method: formData.method,
+        campaignId: formData.campaignId || undefined,
+        notes: formData.notes || undefined,
+      };
+
+      await donationApi.create(donationData);
+
+      // Show success message (thank-you workflow triggered)
+      setShowSuccess(true);
+
+      // Redirect after delay
+      setTimeout(() => {
+        if (formData.donorId) {
+          navigate(`/donors/${formData.donorId}`);
+        } else {
+          navigate('/donors');
+        }
+      }, 2000);
+    } catch (err: any) {
+      setError(err.data?.message || err.message || 'Failed to create donation');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (showSuccess) {
     return (
@@ -107,9 +127,9 @@ export function DonationForm() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               >
                 <option value="">Select a donor...</option>
-                {mockDonors.map((donor) => (
+                {donors.map((donor) => (
                   <option key={donor.id} value={donor.id}>
-                    {donor.name} ({donor.email})
+                    {donor.firstName} {donor.lastName} ({donor.email})
                   </option>
                 ))}
               </select>
@@ -186,7 +206,7 @@ export function DonationForm() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               >
                 <option value="">No campaign</option>
-                {mockCampaigns.map((campaign) => (
+                {campaigns.map((campaign) => (
                   <option key={campaign.id} value={campaign.id}>
                     {campaign.name}
                   </option>

@@ -24,14 +24,15 @@ export function Login() {
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
         navigate('/', { replace: true });
       } else {
-        setError('Invalid email or password. Password must be at least 6 characters.');
+        setError(result.error || 'Invalid email or password. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
+      console.error('Login error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -167,7 +168,7 @@ export function Login() {
 
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 text-center">
-                <strong>Demo:</strong> Use any email and a password with 6+ characters
+                <strong>Demo:</strong> Register with email and password (6+ characters) or contact admin for credentials
               </p>
             </div>
           </div>

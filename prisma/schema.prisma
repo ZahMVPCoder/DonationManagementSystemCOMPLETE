@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   // Should be hashed
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Donor model for tracking donors
+model Donor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  status    String   @default("new") // active, lapsed, new
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  donations Donation[]
+  tasks     Task[]
+}
+
+// Donation model for tracking donations
+model Donation {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  date      DateTime
+  method    String   // credit card, bank transfer, cash, etc.
+  recurring Boolean  @default(false)
+  thanked   Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign keys
+  donorId    Int
+  donor      Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  campaignId Int?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([campaignId])
+}
+
+// Campaign model for tracking fundraising campaigns
+model Campaign {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  goal        Float
+  raised      Float    @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("active") // active, completed, paused
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  donations   Donation[]
+}
+
+// Task model for tracking donor-related tasks
+model Task {
+  id          Int      @id @default(autoincrement())
+  type        String   // follow-up, thank-you, renewal, etc.
+  description String?
+  dueDate     DateTime
+  priority    String   @default("medium") // low, medium, high
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign keys
+  donorId Int
+  donor   Donor @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@index([donorId])
+}
