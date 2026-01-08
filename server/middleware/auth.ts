@@ -94,3 +94,5 @@ export const handleUnauthorized = (err: any, req: Request, res: Response, next: 
     });
   } else {
     next(err);
+  }
+};
