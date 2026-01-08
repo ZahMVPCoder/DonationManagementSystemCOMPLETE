@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * API Utility Module
  * 
@@ -38,14 +40,14 @@ async function request<T>(
   const url = `${API_BASE_URL}${endpoint}`;
   const token = getToken();
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...((options.headers as Record<string, string>) || {}),
   };
 
   // Add Authorization header if token exists
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   try {
