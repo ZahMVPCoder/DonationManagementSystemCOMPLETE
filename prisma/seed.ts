@@ -288,11 +288,13 @@ async function main() {
 }
 
 // Run the seed and handle errors
-main()
-  .catch((e) => {
+(async () => {
+  try {
+    await main();
+  } catch (e) {
     console.error('❌ Error during seeding:', e);
     process.exit(1);
-  })
-  .finally(async () => {
+  } finally {
     await prisma.$disconnect();
-  });
+  }
+})();
