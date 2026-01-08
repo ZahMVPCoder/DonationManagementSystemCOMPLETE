@@ -50,7 +50,7 @@ export function CampaignPage() {
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-gray-600 mb-4">{error || 'Campaign not found'}</p>
-          <Link to="/" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link to="/dashboard" className="text-blue-600 hover:text-blue-700 font-medium">
             Return to Dashboard
           </Link>
         </div>
@@ -81,7 +81,7 @@ export function CampaignPage() {
     <div className="p-8">
       <div className="mb-6">
         <Link
-          to="/"
+          to="/dashboard"
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
         >
           <ArrowLeft className="w-5 h-5" />

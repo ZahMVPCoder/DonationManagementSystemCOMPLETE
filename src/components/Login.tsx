@@ -14,7 +14,7 @@ export function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -26,7 +26,7 @@ export function Login() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/', { replace: true });
+        navigate('/dashboard', { replace: true });
       } else {
         setError(result.error || 'Invalid email or password. Please try again.');
       }

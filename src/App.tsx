@@ -16,9 +16,15 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Default route - redirect to /login if not authenticated */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* Login route - shown to unauthenticated users */}
           <Route path="/login" element={<Login />} />
+          
+          {/* Protected routes - require authentication */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Layout />
@@ -34,7 +40,9 @@ export default function App() {
             <Route path="campaigns/:id" element={<CampaignPage />} />
             <Route path="tasks" element={<TasksView />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          
+          {/* Catch-all - redirect to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
