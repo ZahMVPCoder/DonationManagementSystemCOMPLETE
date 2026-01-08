@@ -50,7 +50,7 @@ async function getCampaignWithDetails(
 
   // Calculate raised amount from donations
   const raised = campaign.donations.reduce(
-    (sum, donation) => sum + donation.amount,
+    (sum: number, donation: any) => sum + donation.amount,
     0
   );
 
@@ -64,7 +64,7 @@ async function getCampaignWithDetails(
     endDate: campaign.endDate ? campaign.endDate.toISOString().split('T')[0] : null,
     status: campaign.status,
     donationCount: campaign.donations.length,
-    donations: campaign.donations.map((d) => ({
+    donations: campaign.donations.map((d: any) => ({
       id: d.id,
       amount: d.amount,
       date: d.date.toISOString().split('T')[0],
@@ -110,9 +110,9 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
     });
 
     // Calculate raised for each campaign
-    const campaignsWithRaised = campaigns.map((campaign) => {
+    const campaignsWithRaised = campaigns.map((campaign: any) => {
       const raised = campaign.donations.reduce(
-        (sum, donation) => sum + donation.amount,
+        (sum: number, donation: any) => sum + donation.amount,
         0
       );
 

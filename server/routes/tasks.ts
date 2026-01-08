@@ -89,7 +89,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
     });
 
     // Format response
-    const formattedTasks = tasks.map((task) => ({
+    const formattedTasks = tasks.map((task: any) => ({
       id: task.id,
       type: task.type,
       description: task.description,
