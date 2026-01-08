@@ -105,63 +105,65 @@ export function DonorList() {
 
       {!loading && !error && (
         <>
-      {/* Results Count */}
-      <div className="mb-4">
-        <p className="text-sm text-gray-600">
-          Showing {donors.length} donors
-        </p>
-      </div>
+          {/* Results Count */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              Showing {donors.length} donors
+            </p>
+          </div>
 
-      {!donors.length && !loading && (
-        <div className="text-center py-12">
-          <p className="text-gray-600">No donors found. Create your first donor to get started!</p>
-        </div>
-      )}
-
-      {/* Donor Cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {donors.map((donor: any) => (
-          <Link
-            key={donor.id}
-            to={`/donors/${donor.id}`}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition block"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-xl font-bold text-gray-900">{donor.name}</h3>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      donor.status
-                    )}`}
-                  >
-                    {donor.status}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 text-sm text-gray-600 mb-4">
-                  <p>{donor.email}</p>
-                  {donor.phone && <p>{donor.phone}</p>}
-                </div>
-                {donor.notes && (
-                  <p className="text-sm text-gray-700 mb-4">{donor.notes}</p>
-                )}
-              </div>
-
-              <div className="text-right ml-6">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  Donor #{donor.id.substring(0, 8)}
-                </div>
-                <p className="text-sm text-gray-600 mb-3">Since {new Date(donor.createdAt).toLocaleDateString()}</p>
-                <button
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  View Profile
-                </button>
-              </div>
+          {!donors.length && !loading && (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No donors found. Create your first donor to get started!</p>
             </div>
-          </Link>
-        ))}
-      </div>
+          )}
+
+          {/* Donor Cards */}
+          <div className="grid grid-cols-1 gap-4">
+            {donors.map((donor: any) => (
+              <Link
+                key={donor.id}
+                to={`/donors/${donor.id}`}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition block"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900">{donor.name}</h3>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          donor.status
+                        )}`}
+                      >
+                        {donor.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 text-sm text-gray-600 mb-4">
+                      <p>{donor.email}</p>
+                      {donor.phone && <p>{donor.phone}</p>}
+                    </div>
+                    {donor.notes && (
+                      <p className="text-sm text-gray-700 mb-4">{donor.notes}</p>
+                    )}
+                  </div>
+
+                  <div className="text-right ml-6">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      Donor #{donor.id.substring(0, 8)}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Since {new Date(donor.createdAt).toLocaleDateString()}</p>
+                    <button
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      View Profile
+                    </button>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
