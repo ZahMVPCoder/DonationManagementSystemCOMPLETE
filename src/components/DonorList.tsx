@@ -157,15 +157,11 @@ export function DonorList() {
                 >
                   View Profile
                 </button>
-                  </div>
-                </div>
               </div>
             </div>
           </Link>
         ))}
       </div>
-        </>
-      )}
     </div>
   );
 }
